@@ -17,19 +17,19 @@ O sistema é construído sob uma arquitetura desacoplada, dividida em dois compo
 ```mermaid
 graph TD
     %% Clientes / Frontend
-    subgraph Clientes [Camada de Apresentação / Clientes]
+    subgraph Clientes ["Camada de Apresentação / Clientes"]
         A["Admin Client (Dart/Flutter)"]
         B["User Client (Multi-linguagem)"]
     end
 
     %% Servidor / Backend
-    subgraph Servidor [Camada de Aplicação / Backend (FastAPI)]
+    subgraph Servidor ["Camada de Aplicação / Backend (FastAPI)"]
         C["REST Controllers (Endpoints)"]
         E["SSE Stream (/eventos/stream)"]
     end
 
     %% Persistência & Mensageria / Infraestrutura
-    subgraph Infra [Camada de Infraestrutura]
+    subgraph Infra ["Camada de Infraestrutura"]
         D["SQLAlchemy ORM"]
         F[("Banco de Dados (PostgreSQL)")]
         G["Redis Pub/Sub (Broker)"]
