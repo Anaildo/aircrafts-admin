@@ -44,8 +44,8 @@ graph TD
     %% Fluxo de Eventos em Tempo Real (Pub/Sub e SSE)
     C -->|3. Publicar Mutação| G
     G -->|4. Subscrever Eventos| E
-    E -.->|5. Streaming SSE (Real-time)| A
-    E -.->|5. Streaming SSE (Real-time)| B
+    E -. "5. Streaming SSE (Real-time)" .-> A
+    E -. "5. Streaming SSE (Real-time)" .-> B
 
     %% Estilos e Cores para tornar o diagrama moderno e legível
     style A fill:#0D47A1,stroke:#0D47A1,color:#FFF,stroke-width:2px;
