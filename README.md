@@ -3,42 +3,87 @@
 Este documento apresenta o relatório técnico de especificação, projeto e análise do sistema **Aircraft Manager**, desenvolvido para as disciplinas de Sistemas Distribuídos. O sistema é composto por uma API REST (backend) em Python e um cliente administrativo (frontend) em Dart/Flutter.
 
 *   **Disciplina**: Sistemas Distribuídos
-*   **Componentes da Dupla**: Anaildo Nascimento & Rewelli Oliveira
+*   **Componentes da Dupla**: Anaildo Nascimento, 552836 & Rewelli Oliveira, 554047
 *   **Escopo do Documento**: Detalhar a implementação e conformidade com os requisitos do **Trabalho 3 (API REST)** e **Trabalho 4 (Comunicação Indireta / Publish-Subscribe)**.
 
 ---
 
 ## 1. Arquitetura Geral do Sistema
 
-O sistema é construído sob uma arquitetura desacoplada, dividida em dois componentes principais que comunicam-se através de rede local ou remota:
+O sistema é construído sob uma arquitetura desacoplada, dividida em dois componentes principais que se comunicam através de rede local ou remota:
+
+### 1.1. Diagrama de Arquitetura da Solução
 
 ```mermaid
 graph TD
-    subgraph Frontend [Clientes - Multi-linguagem]
-        A[Admin Client - Dart/Flutter]
-        B[User Client - Outra Linguagem]
+    %% Clientes / Frontend
+    subgraph Clientes [Camada de Apresentação / Clientes]
+        A["Admin Client (Dart/Flutter)"]
+        B["User Client (Multi-linguagem)"]
     end
 
-    subgraph Backend [Servidor - Python/FastAPI]
-        C[FastAPI REST Controllers]
-        D[SQLAlchemy ORM]
-        E[SSE Stream /eventos/stream]
+    %% Servidor / Backend
+    subgraph Servidor [Camada de Aplicação / Backend (FastAPI)]
+        C["REST Controllers (Endpoints)"]
+        E["SSE Stream (/eventos/stream)"]
     end
 
-    subgraph DB & Message Broker [Infraestrutura]
-        F[(Banco de Dados PostgreSQL)]
-        G[Redis Pub/Sub Broker]
+    %% Persistência & Mensageria / Infraestrutura
+    subgraph Infra [Camada de Infraestrutura]
+        D["SQLAlchemy ORM"]
+        F[("Banco de Dados (PostgreSQL)")]
+        G["Redis Pub/Sub (Broker)"]
     end
 
-    A -- "1. Chamadas HTTP REST (JSON)" --> C
-    B -- "1. Chamadas HTTP REST (JSON)" --> C
-    C -- "2. Persistência" --> D
+    %% Fluxo de Escrita/Leitura REST
+    A -->|1. Requisições REST/JSON| C
+    B -->|1. Requisições REST/JSON| C
+    C -->|2. Persistir Dados| D
     D --> F
-    C -- "3. Publica Mutação" --> G
-    G -- "4. Ouve Canal" --> E
-    E -- "5. Notificações SSE em Tempo Real" --> A
-    E -- "5. Notificações SSE em Tempo Real" --> B
+
+    %% Fluxo de Eventos em Tempo Real (Pub/Sub e SSE)
+    C -->|3. Publicar Mutação| G
+    G -->|4. Subscrever Eventos| E
+    E -.->|5. Streaming SSE (Real-time)| A
+    E -.->|5. Streaming SSE (Real-time)| B
+
+    %% Estilos e Cores para tornar o diagrama moderno e legível
+    style A fill:#0D47A1,stroke:#0D47A1,color:#FFF,stroke-width:2px;
+    style B fill:#1565C0,stroke:#1565C0,color:#FFF,stroke-width:2px;
+    style C fill:#00796B,stroke:#00796B,color:#FFF,stroke-width:2px;
+    style E fill:#00897B,stroke:#00897B,color:#FFF,stroke-width:2px;
+    style D fill:#7CB342,stroke:#7CB342,color:#FFF,stroke-width:2px;
+    style F fill:#2E7D32,stroke:#2E7D32,color:#FFF,stroke-width:2px;
+    style G fill:#C62828,stroke:#C62828,color:#FFF,stroke-width:2px;
 ```
+
+### 1.2. Organização e Arquitetura do Cliente Administrativo (Flutter)
+
+Este repositório (`aircrafts-admin`) contém o cliente em Flutter estruturado para seguir as melhores práticas de separação de responsabilidades (Clean Architecture e MVC simplificado). O código-fonte está organizado da seguinte forma no diretório `lib/`:
+
+```text
+lib/
+├── models/             # Modelos de Dados (Entidades serializáveis em JSON)
+│   ├── aeronave.dart
+│   └── companhia.dart
+├── services/           # Serviços de Rede e Integração (Comunicação)
+│   ├── api_service.dart     # Conexão HTTP/REST (GET, POST, DELETE)
+│   └── broker_service.dart  # Stream persistente de Server-Sent Events (SSE)
+├── screens/            # Camada de Visualização (Telas e UI)
+│   ├── home_screen.dart     # Dashboard / Lista de Companhias
+│   ├── frota_screen.dart    # Gestão da Frota de uma Companhia
+│   └── formularios/         # Formulários de Criação
+│       ├── form_aeronave.dart
+│       └── form_companhia.dart
+└── main.dart           # Ponto de entrada (Configuração de Temas e Rotas)
+```
+
+#### Descrição das Camadas do Frontend:
+*   **Models**: Responsável pela deserialização e tipagem dos dados recebidos via JSON. Garante a integridade de tipos no Dart ao instanciar objetos locais a partir de payloads de rede.
+*   **Services**:
+    *   `api_service.dart`: Encapsula a lógica de requisições HTTP REST síncronas. Executa as chamadas de mutação (criação e deleção) e requisições iniciais de listagem.
+    *   `broker_service.dart`: Responsável por manter a conexão SSE persistente com o servidor de forma assíncrona. Contém a lógica de reconexão automática e o parsing em tempo real dos eventos publicados no canal.
+*   **Screens (Views)**: Onde a interface reativa do Flutter reside. As telas ouvem streams ou realizam chamadas HTTP para reconstruir e atualizar os widgets sob demanda sempre que novos dados chegam do `BrokerService`.
 
 ---
 
